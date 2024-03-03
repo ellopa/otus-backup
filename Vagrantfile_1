@@ -1,0 +1,32 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+    config.vm.box = "generic/centos8s"    
+
+    config.vm.define "backup_server" do |backup_server|
+        backup_server.vm.network "private_network", ip: "192.168.56.14", virtualbox__intnet: "net1"
+        backup_server.vm.provider "virtualbox" do |v|
+        v.memory = 512
+        v.cpus = 1
+
+        # New disk for /var/backup directory  - 2 GB
+        new_disk = 'newdisk.vdi'
+        v.customize ['createhd', '--filename', new_disk, '--size', 2 * 1024]
+        v.customize ["storagectl", :id, "--name", "SATA", "--add", "sata" ]
+        v.customize ['storageattach', :id,  '--storagectl', 'SATA', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', new_disk]
+    end 
+
+        backup_server.vm.hostname = "backupserver"
+        backup_server.vm.provision "shell", path: "./add_disk_script.sh"
+    end
+    config.vm.define "backup_client" do |client|
+        client.vm.network "private_network", ip: "192.168.56.13", virtualbox__intnet: "net1"
+        client.vm.hostname = "backupclient"
+        client.vm.provider "virtualbox" do |v|
+        v.memory = 512
+        v.cpus = 1
+    end 
+    
+    end   
+end  
